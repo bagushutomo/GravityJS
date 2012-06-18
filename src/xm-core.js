@@ -399,12 +399,7 @@ XM.Object = {
                 return entities[capture];    
             });
         };
-    })(),
-    
-    isURL: function(value) {
-      return (value.indexOf('http://') > -1 || value.indexOf('https://') > -1) ? true : false;
-    }
-    
+    })()
     
   }
 })();
@@ -556,9 +551,11 @@ XM.Object = {
      */
     _namespaceToURL: function(namespace, prefixPath) {
       var prefix = (XM.isString(prefixPath) ? prefixPath : this.config.basePath),
-          path = "";
-      
-      path = prefix + "/" + namespace.replace(/\./g, "/") + '.js';
+          path = "",
+          postfix = ".js";
+
+      namespace = namespace.substr(0, namespace.indexOf(".min.js"));
+      path = prefix + "/" + namespace.replace(/\./g, "/") + postfix;
       return path;
     },
     
@@ -603,13 +600,7 @@ XM.Object = {
       for (var i = 0, len = classes.length; i < len; i++) {
         if ( this._isScriptLoaded[classes[i]] !== true ) {
           this._isScriptLoaded[classes[i]] = true;
-          
-          if (!XM.String.isURL(classes[i])) {
-            this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
-          }
-          else {
-            this._load(classes[i], this._refreshQueue, this, this.config.useAsynchronous);
-          }
+          this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
         }
       }
     }, //end of XM.Loader#require
