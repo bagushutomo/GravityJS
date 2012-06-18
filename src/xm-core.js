@@ -148,6 +148,7 @@ XM.apply(XM, {
   isUndefined: function(value) {
     return value === undefined;
   }
+  
 })
 
 
@@ -292,10 +293,6 @@ XM.Object = {
 },
 
 
-
-
-
-
 /******************************************
  * @class XM.Array  Utility class for manipulating javascript array.
  * @namespace XM
@@ -357,6 +354,63 @@ XM.Object = {
 })();
 
 
+/******************************************
+ * @class XM.String  Utility class for manipulating javascript string.
+ * @namespace XM
+ */
+(function(){
+  XM.String = {
+    
+    /**
+     * Appends content to the query string of a URL, handling logic for whether to place a question mark or ampersand.
+     * @param   {String} url    The URL to append to.
+     * @param   {String} string The content to append to the URL.
+     * @return  {String} The resulting URL
+     */
+    appendURL : function(url, string) {
+        if (!Ext.isEmpty(string)) {
+            return url + (url.indexOf('?') === -1 ? '?' : '&') + string;
+        }
+        return url;
+    },
+    
+    /**
+     * Convert certain characters (&, <, >, and ") to their HTML character equivalents for literal display in web pages.
+     * @method
+     * @param   {String} value The string to encode
+     * @return  {String} The encoded text
+     */
+    HTMLEncode: (function() {
+        var entities = {
+            '&': '&amp;',
+            '>': '&gt;',
+            '<': '&lt;',
+            '"': '&quot;'
+        }, keys = [], p, expression;
+        
+        for (p in entities) {
+            keys.push(p);
+        }
+        
+        expression = new RegExp('(' + keys.join('|') + ')', 'g');
+        
+        return function(value) {
+            return (!value) ? value : String(value).replace(expression, function(match, capture) {
+                return entities[capture];    
+            });
+        };
+    })(),
+    
+    isURL: function(value) {
+      return (value.indexOf('http://') > -1 || value.indexOf('https://') > -1) ? true : false;
+    }
+    
+    
+  }
+})();
+
+
+
 
 /******************************************
  * Manage script loading
@@ -409,6 +463,7 @@ XM.Object = {
      * @private
      */
     _load: function(url, onLoad, scope, isSynchronous) {
+      console.log(url);
       var fileName  = url.split('/').pop(),
           isLoaded  = false,
           noCache   = '?nocache=' + Number(new Date());
@@ -548,8 +603,13 @@ XM.Object = {
       for (var i = 0, len = classes.length; i < len; i++) {
         if ( this._isScriptLoaded[classes[i]] !== true ) {
           this._isScriptLoaded[classes[i]] = true;
-          //this._load();
-          this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
+          
+          if (!XM.String.isURL(classes[i])) {
+            this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
+          }
+          else {
+            this._load(classes[i], this._refreshQueue, this, this.config.useAsynchronous);
+          }
         }
       }
     }, //end of XM.Loader#require
@@ -605,9 +665,8 @@ XM.Object = {
   }
 })();
 
-
-
-XM.ScriptLoader.require(["Car", "Prius", "com.tawa"], function() {console.log("-----   FINISH   ---------");}, XM);
+XM.ScriptLoader.require(["Car", "Prius", "com.tawa", "https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"], function() {console.log("-----   FINISH   ---------");}, XM);
+//XM.ScriptLoader.require(["Car", "Prius", "com.tawa"], function() {console.log("-----   FINISH   ---------");}, XM);
 
 /*
 var abc = {
