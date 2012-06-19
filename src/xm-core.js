@@ -539,6 +539,16 @@ XM.Object = {
     },
     
     /**
+     * Figure if the given string is a valid namespace format.
+     *
+     * @param   {String}  value   The string to be validate.
+     * @return  {Boolean} return true if given URL is a valid namespace format. Otherwise, return false.
+     */
+    _isValidNamespace: function(value) {
+      return (value.indexOf('/') > -1) ? false : true;
+    },
+    
+    /**
      * Translates a {namespace} to a valid URL to be used. Will convert '.' to '/'
      *
      * For example:
@@ -546,21 +556,26 @@ XM.Object = {
      *
      * @param {String} className  The namespace string of the class (e.g: 'XM.canvas.CanvasFactory')
      * @param {String} prefixPath (Optional) If supplied, will override the configuration prefix path defined in XM.Loader.config
-     * @returns {String}  The valid URL of specified namespace
+     * @return {String}  The valid URL of specified namespace
      * @private
      */
     _namespaceToURL: function(namespace, prefixPath) {
       var prefix = (XM.isString(prefixPath) ? prefixPath : this.config.basePath),
           path = "",
-          postfix = ".js";
+          endlength = namespace.indexOf(".min.js"),
+          postfix = endlength > 0 ? ".min.js" : ".js";
 
-      namespace = namespace.substr(0, namespace.indexOf(".min.js"));
+      namespace = namespace.substr(0, (endlength > 0) ? endlength : namespace.length );
       path = prefix + "/" + namespace.replace(/\./g, "/") + postfix;
       return path;
     },
     
     /**
-     * Loads all specified classes and their direct dependencies.
+     * Loads all specified classes and their direct dependencies. Can load external library, use slash '/' separator instead of dot '.' separator to load external library.
+     *
+     * Example:
+     * require(["com.someclass", "vendor/jquery.1.2.3.min.js"], onLoaded, this);
+     *
      * @param {String|Array}  requiredClasses   Can either be a string or an array of string.
      * @param {Function}      fn                (optional) The callback function to executed after the classes is loaded.
      * @param {Object}        scope             (optional) The execution scope (i.e: "this" keyword) of the callback function.
@@ -600,7 +615,9 @@ XM.Object = {
       for (var i = 0, len = classes.length; i < len; i++) {
         if ( this._isScriptLoaded[classes[i]] !== true ) {
           this._isScriptLoaded[classes[i]] = true;
-          this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
+          
+          if (this._isValidNamespace(classes[i])) this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
+          else this._load(this.config.basePath + "/" + classes[i], this._refreshQueue, this, this.config.useAsynchronous);
         }
       }
     }, //end of XM.Loader#require
@@ -656,7 +673,7 @@ XM.Object = {
   }
 })();
 
-XM.ScriptLoader.require(["Car", "Prius", "com.tawa", "https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"], function() {console.log("-----   FINISH   ---------");}, XM);
+XM.ScriptLoader.require(["Car", "Prius", "com.tawa", "vendor/jquery.min.js"], function() {console.log("-----   FINISH   ---------");}, XM);
 //XM.ScriptLoader.require(["Car", "Prius", "com.tawa"], function() {console.log("-----   FINISH   ---------");}, XM);
 
 /*
