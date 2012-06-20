@@ -440,6 +440,8 @@ XM.Object = {
     
     _isScriptLoaded: {},
     
+    _namespaceToURLMap: {},
+    
     _classMap: [],
     
     
@@ -518,17 +520,20 @@ XM.Object = {
      * @private
      */
     _refreshQueue: function() {
+        console.log("_refreshQueue");
         var i, item,
             ln = this._queue.length;
 
+        console.log(this._queue, ln);
         if (ln == 0) {
           //this.triggerReady();
+          console.log("UDA READY BANGET");
           return;
         }
 
         for (i = 0; i < ln; i++) {
           item = this._queue[i];
-          console.log(item);
+          console.log("queue", i, ":",item, item.requires);
           if (item && XM.ClassManager.isExist(item.requires)) {
             this._queue.splice(i, 1);
             item.callback.call(item.scope);
@@ -544,7 +549,7 @@ XM.Object = {
      * @param   {String}  value   The string to be validate.
      * @return  {Boolean} return true if given URL is a valid namespace format. Otherwise, return false.
      */
-    _isValidNamespace: function(value) {
+    _isNamespace: function(value) {
       return (value.indexOf('/') > -1) ? false : true;
     },
     
@@ -570,6 +575,15 @@ XM.Object = {
       return path;
     },
     
+    _addNamespaceToURLMap: function(ns) {
+      if (this._isNamespace(ns)) {
+        this._namespaceToURLMap[ns] = this._namespaceToURL(ns);
+      }
+      else {
+        this._namespaceToURLMap[ns] = this.config.basePath + "/" + ns;
+      }
+    },
+    
     /**
      * Loads all specified classes and their direct dependencies. Can load external library, use slash '/' separator instead of dot '.' separator to load external library.
      *
@@ -590,15 +604,20 @@ XM.Object = {
       fn = fn || null;
       scope = scope || XM.global;
       
+      console.log("BEFORE FILTER", classes);
+      
       //filtering the classes so that only non-empty and non-redundant classes are collected
       classes = XM.Array.filter(classes, function(item) {return !XM.isEmpty(item)});
       classes = XM.Array.filter(classes, function(name) {
         return !XM.ClassManager.isExist(name);
       }, this);
       
+      console.log("AFTER FILTER", classes);
+      
       //refresh the queue if all the filtered required classes is not required anymore (i.e: already loaded).
       //act as recursive stopper for each require() call in every class..
       if (classes.length == 0) {
+        console.log("#### EXECUTE ####");
         if (XM.isFunction(fn)) fn.call(scope);
         else throw new Error(":: XM.ScriptLoader#require -- The provided callback is not a Function");
         this._refreshQueue();
@@ -613,14 +632,19 @@ XM.Object = {
       
       //start to load all required class that not yet listed by framework..
       for (var i = 0, len = classes.length; i < len; i++) {
-        if ( this._isScriptLoaded[classes[i]] !== true ) {
-          this._isScriptLoaded[classes[i]] = true;
+        
+        var cls = classes[i];
+        
+        if ( this._isScriptLoaded[cls] !== true ) {
+          this._isScriptLoaded[cls] = true;
           
-          if (this._isValidNamespace(classes[i])) this._load(this._namespaceToURL(classes[i]), this._refreshQueue, this, this.config.useAsynchronous);
-          else this._load(this.config.basePath + "/" + classes[i], this._refreshQueue, this, this.config.useAsynchronous);
+          if (!this._namespaceToURLMap[cls]) this._addNamespaceToURLMap(cls);
+          
+          this._load(this._namespaceToURLMap[cls], this._refreshQueue, this, this.config.useAsynchronous);
         }
       }
-    }, //end of XM.Loader#require
+    },
+    
   } //end of XM.ScriptLoader
 })();
 
@@ -652,34 +676,39 @@ XM.Object = {
 
       //parse the namespace and check if the object hierarchy contain the object specified in namespace
       if (XM.isString(className)) {
-        parent = XM.singleton;
-        part = className.split('.');
-
-        for (var i = 0; i < part.length; i++ ) {
-
-          if (!parent || !parent[part[i]]) {
-            return false;
-          }
-          parent = parent[part[i]];
+        
+        if (className.indexOf('/')) {
+          this.cachedClass[className] = true;
+          return false;
         }
+        else {
+          parent = XM.singleton;
+          part = className.split('.');
 
+          for (var i = 0; i < part.length; i++ ) {
+            if (!parent || !parent[part[i]]) return false;
+            parent = parent[part[i]];
+          }
 
-        this.cachedClass[className] = true;
-
-        return true;
+          this.cachedClass[className] = true;
+          return true;
+        }
       }
-      else return false;
+      else {
+        return false;
+      }
     }
   }
 })();
 
-XM.ScriptLoader.require(["Car", "Prius", "com.tawa", "vendor/jquery.min.js"], function() {console.log("-----   FINISH   ---------");}, XM);
-//XM.ScriptLoader.require(["Car", "Prius", "com.tawa"], function() {console.log("-----   FINISH   ---------");}, XM);
+XM.ScriptLoader.require(
+  //"Car",
+  //["vendor/jquery.min.js",
+  //"vendor/jquery-mousewheel.js"],
+  ["Car", "Prius", "Car"],
+  function() {
+    console.log("-----   READY   ---------");
+  }, XM);
 
-/*
-var abc = {
-  what: "abjad",
-  when: "1200 BCE",
-  who: "Roman Republic"
-}
-*/
+
+
