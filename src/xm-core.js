@@ -178,16 +178,17 @@ XM.Function = {
   },
   
   /**
-   * Make an alias of {fn} function that to be executed in {scope}. Similar with {@link XM.Function#bind} but with main intention on "passing" the function regardless of scope.
-   * @method
-   * @static
+   * Create a function {fn} with defined argument to be passed into caller. This can be used as a way to send a parameterized callback.
    * @param {Function}  fn    Function to alias.
    * @param {Object}    scope Object that act as the origin which the fn executed.
-   * @param {Args}      args  Arguments for fn.  
+   * @param {Args}      args  Arguments for fn. 
+   * @return {Function} The function to be used as callback. 
    */
   pass: function (fn, args, scope) {
+    if (XM.isEmpty(args)) args = [];
+
     return function() {
-      return fn.apply(scope || window, args);
+      return fn.apply(scope || window, args.concat(arguments));
     }
   },
   
@@ -633,13 +634,12 @@ XM.Object = {
       //start to load all required class that not yet listed by framework..
       for (var i = 0, len = classes.length; i < len; i++) {
         
-        var cls = classes[i];
+        var cls = classes[i],
         
         if ( this._isScriptLoaded[cls] !== true ) {
           this._isScriptLoaded[cls] = true;
           
           if (!this._namespaceToURLMap[cls]) this._addNamespaceToURLMap(cls);
-          
           this._load(this._namespaceToURLMap[cls], this._refreshQueue, this, this.config.useAsynchronous);
         }
       }
@@ -709,6 +709,3 @@ XM.ScriptLoader.require(
   function() {
     console.log("-----   READY   ---------");
   }, XM);
-
-
-
