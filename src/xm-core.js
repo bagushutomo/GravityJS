@@ -299,7 +299,146 @@ XM.Object = {
  * @namespace XM
  */
 (function(){
-  XM.Array = {
+
+	//a set of browser support detection.
+	var proto = Array.prototype,
+			slice = proto.slice,
+			supportFilter			= 'filter' in proto,
+			supportForEach		= 'forEach' in proto,
+			supportIndexOf		= 'indexOf' in proto,
+			supportEvery			= 'every' in proto,
+			supportMap				= 'map' in proto,
+			supportSome				= 'some' in proto,
+			supportReduce			= 'reduce' in proto,
+			//determine if Array.splice is supported..
+			supportSplice			= function() {
+				var array = [],
+						lnBefore,
+						lnAfter,
+						ss = [];
+
+				if (!array.splice) return false;
+
+				//start testing for IE8 splice bug (http://social.msdn.microsoft.com/Forums/lv-LV/iewebdevelopment/thread/6e946d03-e09f-4b22-a4dd-cd5e276bf05a)
+				for(var j=0; j<20; j++) {
+					ss.push("A");
+				}
+
+				ss.splice(15, 0, "F", "F", "F", "F", "F","F","F","F","F","F","F","F","F","F","F","F","F","F","F","F","F");
+				lnBefore = ss.length;
+				ss.splice(13, 0, "XXX"); //if IE8 used, length of ss will be 55 instead of 42..
+				lnAfter = ss.length;
+
+				if (lnBefore+1 != lnAfter) return false
+				else return true
+			};
+
+	function fixArrayIndex (array, index) {
+		return (index < 0) ? Math.max(0, array.length + index) : Math.min(array.length, index);
+	}
+
+	function replaceNative(array, index, removeCount, insert) {
+		if (insert && insert.length) {
+			if (index < array.length) {
+				array.splice.apply(array, [index, removeCount].concat(insert))
+			}
+			else {
+				array.push.apply(array, insert);
+			}
+		}
+		else {
+			array.splice(index, removeCount);
+		}
+		return array;
+	}
+
+	function replaceExtend(array, index, removeCount, insert) {
+		var add = insert ? insert.length : 0,
+			length = array.length,
+			pos = fixArrayIndex(array, index);
+
+		if (pos === length) {
+			if (add) {
+				array.push.apply(array, insert);
+			}
+		} else {
+			var remove = Math.min(removeCount, length - pos),
+				tailOldPos = pos + remove,
+				tailNewPos = tailOldPos + add - remove,
+				tailCount = length - tailOldPos,
+				lengthAfterRemove = length - remove,
+				i;
+
+			if (tailNewPos < tailOldPos) { // case A
+				for (i = 0; i < tailCount; ++i) {
+					array[tailNewPos+i] = array[tailOldPos+i];
+				}
+			} else if (tailNewPos > tailOldPos) { // case B
+				for (i = tailCount; i--; ) {
+					array[tailNewPos+i] = array[tailOldPos+i];
+				}
+			} // else, add == remove (nothing to do)
+
+			if (add && pos === lengthAfterRemove) {
+				array.length = lengthAfterRemove; // truncate array
+				array.push.apply(array, insert);
+			} else {
+				array.length = lengthAfterRemove + add; // reserves space
+				for (i = 0; i < add; ++i) {
+					array[pos+i] = insert[i];
+				}
+			}
+		}
+
+		return array;
+	}
+
+	function spliceNative(array) {
+		return array.splice.apply(array, slice.call(arguments, 1));
+	}
+
+	function spliceExtend(array, index, removeCount) {
+		var pos = fixArrayIndex(array, index),
+			removed = array.slice(index, fixArrayIndex(array, pos+removeCount));
+
+		if (arguments.length < 4) {
+			replaceSim(array, pos, removeCount);
+		} else {
+			replaceSim(array, pos, removeCount, slice.call(arguments, 3));
+		}
+
+		return removed;
+	}
+
+	function eraseNative(array, index, removeCount) {
+		array.splice(index, removeCount);
+		return array;
+	}
+
+	function eraseExtend(array, index, removeCount) {
+		return replaceExtend(array, index, removeCount);
+	}
+
+	var erase 	= supportSplice ? eraseNative : eraseExtend,
+			replace = supportSplice ? replaceNative : replaceNative,
+			splice 	= supportSplice ? spliceNative : spliceExtend;
+
+	XM.Array = {
+
+		/**
+		 * 
+		 */
+		erase: erase,
+
+		/**
+		 *
+		 */
+		replace: replace,
+
+		/**
+		 *
+		 */
+		splice: splice,
     
     /**
      * Check wheter the specified item is in the specified array.
@@ -308,7 +447,18 @@ XM.Object = {
      * @return {Boolean} Will return true if the specified item is in the array. Otherwise, will return false.
      */
     inArray: function(array, item) {
-      return (array.indexOf(item) > -1);
+    	if (supportIndexOf) {
+	      return (array.indexOf(item) > -1);
+    	}
+
+    	var i, len;
+
+    	for (i = 0, len = array.length; i < len; i++) {
+    		if (array[i] === item) {
+    			return true;
+    		}
+    	}
+    	return false;
     },
     
     /**
@@ -320,7 +470,7 @@ XM.Object = {
      */
     filter: function(array, fn, scope) {
       // normal use of array.filter() specified in the ECMA-262 standard
-      if (Array.prototype.filter) {
+      if (supportFilter) {
         return array.filter(fn, scope);
       }
       
@@ -444,6 +594,10 @@ XM.Object = {
     _namespaceToURLMap: {},
     
     _classMap: [],
+
+    numLoadedFiles: 0,
+
+    numWaitingFiles: 0,
     
     
     PROGRESS  : "progress",
@@ -521,11 +675,10 @@ XM.Object = {
      * @private
      */
     _refreshQueue: function() {
-        console.log("_refreshQueue");
-        var i, item,
+        console.log("_refreshQueue", this._queue.length);
+        var i, j, item, reqs,
             ln = this._queue.length;
 
-        console.log(this._queue, ln);
         if (ln == 0) {
           //this.triggerReady();
           console.log("UDA READY BANGET");
@@ -534,12 +687,32 @@ XM.Object = {
 
         for (i = 0; i < ln; i++) {
           item = this._queue[i];
-          console.log("queue", i, ":",item, item.requires);
-          if (item && XM.ClassManager.isExist(item.requires)) {
-            this._queue.splice(i, 1);
-            item.callback.call(item.scope);
-            this._refreshQueue();
-            break;
+          if (item) {
+          	reqs = item.requires;
+          	console.log(reqs)
+          	if (reqs.length > this.numLoadedFiles) {
+          		console.log("reqs.length > numLoadedFiles", reqs.length, ">", this.numLoadedFiles);
+          		continue;
+          	}
+
+          	j = 0;
+
+          	do {
+          		if (XM.ClassManager.isExist(reqs[j])) {
+          			XM.Array.erase(reqs, j, 1);
+          		}
+          		else {
+          			j++;
+          		}
+          	} while ( j < reqs.length)
+
+          	if (item.requires.length === 0) {
+          		console.log("item.requires.length === 0 -->", item.requires)
+          		XM.Array.erase(this._queue, j, 1);
+          		item.callback.call(item.scope);
+          		this._refreshQueue();
+          		break;
+          	}
           }
         }
     },
@@ -617,12 +790,11 @@ XM.Object = {
       
       //refresh the queue if all the filtered required classes is not required anymore (i.e: already loaded).
       //act as recursive stopper for each require() call in every class..
-      if (classes.length == 0) {
+      if (classes.length === 0) {
         console.log("#### EXECUTE ####");
         if (XM.isFunction(fn)) fn.call(scope);
         else throw new Error(":: XM.ScriptLoader#require -- The provided callback is not a Function");
-        this._refreshQueue();
-        return;
+        return this;
       }
       
       this._queue.push({
@@ -639,12 +811,21 @@ XM.Object = {
         if ( this._isScriptLoaded[cls] !== true ) {
           this._isScriptLoaded[cls] = true;
           
+          this.numWaitingFiles++;
           if (!this._namespaceToURLMap[cls]) this._addNamespaceToURLMap(cls);
-          this._load(this._namespaceToURLMap[cls], this._refreshQueue, this, this.config.useAsynchronous);
+          this._load(this._namespaceToURLMap[cls], this.onFileLoaded, this, this.config.useAsynchronous);
         }
       }
     },
-    
+
+		onFileLoaded: function(className, filePath) {
+			console.log("onFileLoaded", this.numWaitingFiles);
+			this.numLoadedFiles++;
+			this.numWaitingFiles--;
+
+			if (this.numWaitingFiles === 0) this._refreshQueue();
+		}
+
   } //end of XM.ScriptLoader
 })();
 
@@ -705,7 +886,7 @@ XM.ScriptLoader.require(
   //"Car",
   //["vendor/jquery.min.js",
   //"vendor/jquery-mousewheel.js"],
-  ["Car", "Prius", "Car"],
+  ["Car", "Prius", "Car", "vendor/jquery.min.js" ],
   function() {
     console.log("-----   READY   ---------");
   }, XM);
