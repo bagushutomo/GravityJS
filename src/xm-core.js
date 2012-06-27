@@ -806,7 +806,7 @@ XM.Object = {
       //start to load all required class that not yet listed by framework..
       for (var i = 0, len = classes.length; i < len; i++) {
         
-        var cls = classes[i],
+        var cls = classes[i];
         
         if ( this._isScriptLoaded[cls] !== true ) {
           this._isScriptLoaded[cls] = true;
