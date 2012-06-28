@@ -223,12 +223,10 @@ XM.Function = {
       
       //determine if the arguments is a pair-value.
       if (XM.isString(names)) {
-        console.log("isString");
         fn.call(this, names, values);
       }
       //determine if the arguments is a pair-value in an object.
       else {
-        console.log("not a string");
         for (var i in names) {
           fn.call(this, i, names[i]);
         }
@@ -615,7 +613,6 @@ XM.Object = {
      * @private
      */
     _load: function(url, onLoad, scope, isSynchronous) {
-      console.log(url);
       var fileName  = url.split('/').pop(),
           isLoaded  = false,
           noCache   = '?nocache=' + Number(new Date());
@@ -675,7 +672,6 @@ XM.Object = {
      * @private
      */
     _refreshQueue: function() {
-        console.log("_refreshQueue", this._queue.length);
         var i, j, item, reqs,
             ln = this._queue.length;
 
@@ -689,9 +685,7 @@ XM.Object = {
           item = this._queue[i];
           if (item) {
           	reqs = item.requires;
-          	console.log(reqs)
           	if (reqs.length > this.numLoadedFiles) {
-          		console.log("reqs.length > numLoadedFiles", reqs.length, ">", this.numLoadedFiles);
           		continue;
           	}
 
@@ -707,7 +701,6 @@ XM.Object = {
           	} while ( j < reqs.length)
 
           	if (item.requires.length === 0) {
-          		console.log("item.requires.length === 0 -->", item.requires)
           		XM.Array.erase(this._queue, j, 1);
           		item.callback.call(item.scope);
           		this._refreshQueue();
@@ -778,20 +771,15 @@ XM.Object = {
       fn = fn || null;
       scope = scope || XM.global;
       
-      console.log("BEFORE FILTER", classes);
-      
       //filtering the classes so that only non-empty and non-redundant classes are collected
       classes = XM.Array.filter(classes, function(item) {return !XM.isEmpty(item)});
       classes = XM.Array.filter(classes, function(name) {
         return !XM.ClassManager.isExist(name);
       }, this);
       
-      console.log("AFTER FILTER", classes);
-      
       //refresh the queue if all the filtered required classes is not required anymore (i.e: already loaded).
       //act as recursive stopper for each require() call in every class..
       if (classes.length === 0) {
-        console.log("#### EXECUTE ####");
         if (XM.isFunction(fn)) fn.call(scope);
         else throw new Error(":: XM.ScriptLoader#require -- The provided callback is not a Function");
         return this;
@@ -819,7 +807,6 @@ XM.Object = {
     },
 
 		onFileLoaded: function(className, filePath) {
-			console.log("onFileLoaded", this.numWaitingFiles);
 			this.numLoadedFiles++;
 			this.numWaitingFiles--;
 
