@@ -812,7 +812,6 @@ XM.Object = {
 
 			if (this.numWaitingFiles === 0) this._refreshQueue();
 		}
-
   } //end of XM.ScriptLoader
 })();
 
@@ -820,6 +819,13 @@ XM.Object = {
   XM.ClassManager = {
 
     cachedClass: {},
+
+    create: function(className, data, onCreatedFn) {
+      var manager = this;
+
+
+
+    },
 
     /**
      * Check if specified namespace(s) is already exist in runtime object hierarchy. Will return true if the specified namespace is already exist; otherwise, will return false.
@@ -865,7 +871,47 @@ XM.Object = {
       else {
         return false;
       }
-    }
+    },
+
+		parseNamespace: function(namespace) {
+			var parts = [],
+					root = XM.global;
+
+			parts.push(root);
+			parts = parts.concat(namespace.split('.'));
+			return parts;
+		},
+
+		createNamespaces: function() {
+			console.log("createNamespaces", arguments)
+			var root = XM.global,
+					i, j, ln, partLn, parts, part;
+
+      console.log(arguments, arguments.length);
+			for (i = 0, ln = arguments.length; i < ln; i++) {
+				parts = this.parseNamespace(arguments[i]);
+        console.log("parts", parts);
+				for (j = 0, partLn = parts.length; j < partLn; j++) {
+					part = parts[j];
+
+          console.log(part);
+
+					if (XM.isString(part)) {
+            console.log("isstring");
+						if (!root[part]) {
+							root[part] = {};
+						}
+						root = root[part];
+					}
+					else {
+            console.log("not string");
+						root = part;
+					}
+				}
+			}
+			return root;
+		}
+
   }
 })();
 
@@ -876,4 +922,5 @@ XM.ScriptLoader.require(
   ["Car", "Prius", "Car", "vendor/jquery.min.js" ],
   function() {
     console.log("-----   READY   ---------");
+    XM.ClassManager.createNamespaces("com.momo.Haha")
   }, XM);
