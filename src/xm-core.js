@@ -41,6 +41,9 @@ XM.apply = function(receiver, config, defaults) {
 
 
 XM.apply(XM, {
+
+	emptyFn: function() {},
+
 	/**
 	 * Validate the specified value by returning true if the specified value is Array. Otherwise, will return false.
 	 * @method
@@ -819,6 +822,7 @@ XM.Object = {
 var Base = XM.Base = function(){};
 	Base.prototype = {
 
+		_className: "XM.Base",
 		/**
 		 * Reference to this class
 		 */
@@ -831,16 +835,69 @@ var Base = XM.Base = function(){};
 			return this;
 		}
 	}
+
+	XM.apply(XM, {
+		
+	})
 })();
+
+
+
 
 
 (function(){
 
+	var Base = XM.Base,
+		staticProperties = [],
+		staticProperty;
+
+	for (staticProperty in Base) {
+		if (Base.hasOwnProperty(staticProperties)) {
+			staticProperties.push(staticProperties);
+		}
+	}
+
 	/**
 	 * @method constructor
 	 */
-	XM.Class = function(className, classData, onClassCreated) {
-		
+	XM.Class = function(classData, onClassCreated) {
+
+		var i, 
+			ln = staticProperties.length,
+			prop;
+
+		//template of the class factory
+		newClass = function() {
+			return this.constructor.apply(this, arguments);
+		}
+
+		if (!classData) classData = {};
+
+		//duplicate Base properties into Class factory class..
+		for (i = 0; i < ln; i++) {
+			prop = staticProperties[i];
+			newClass[prop] = Base[prop];
+		}
+
+		//implement handler when class is created
+		classData.onClassCreated = onClassCreated || XM.emptyFn;
+
+		//implement handler when class is just about to be created, do the implementation of actual integration of data into newly created class
+		classData.onBeforeClassCreated = function(cls, data) {
+			temp = data.onClassCreated;
+
+			cls.implement(data);
+			temp.call(cls, cls)
+		};
+
+		//method to instruct when the implementation of above handler is executed
+		process = function(cls, data) {
+			data.onBeforeClassCreated.apply(this, arguments);
+		};
+
+		//do the actual process
+		process.call(Class, newClass, classData);
+		return newClass;
 	}
 })();
 
@@ -849,10 +906,19 @@ var Base = XM.Base = function(){};
 
 		cachedClass: {},
 
-		create: function(className, data, onCreated) {
-			var manager = this;
+		references: {},
 
-			return new Class()
+		create: function(className, data, onCreated) {
+
+			return new Class(data, function(){
+
+				process = function(cls, data) {
+
+				}
+				process.call(Class, newClass, classData);
+
+				return newClass
+			})
 
 
 		},
@@ -912,6 +978,40 @@ var Base = XM.Base = function(){};
 			return parts;
 		},
 
+		/**
+		 * Create a namespace and assign it with a class or object.
+		 * 
+		 * @param {String}  name  	A namespace.
+		 * @param {Object}  obj   	A class or object to be assigned with specific namespace.
+		 */
+		createNamespace: function(name, obj) {
+			var root 	= XM.global,
+					parts = this.parseNamespace(name),
+					ln = parts.length - 1,
+					last = parts[ln],
+					part, i;
+
+			for (i = 0; i < ln; i++) {
+				part = parts[i];
+
+				if (XM.isString(part)) {
+					if (!root[part]) {
+						root[part] = {};
+					}
+					root = root[part];
+				}
+				else {
+					root = part;
+				}
+			}
+
+			root[last] = obj;
+			return root[last];
+		},
+
+		/**
+		 * Mass creation of namespace. Capable of create multiple namespaces.
+		 */
 		createNamespaces: function() {
 			var root = XM.global,
 					i, j, ln, partLn, parts, part;
@@ -935,6 +1035,36 @@ var Base = XM.Base = function(){};
 			return root;
 		},
 
+		setReference: function(name, cls) {
+				this.references[name] = this.createNamespace(name, cls);
+				return this;
+		},
+
+		getReference: function(namespace) {
+			if (this.references.hasOwnProperty(namespace)) {
+				return this.references(namespace);
+			}
+
+			var root = XM.global,
+					parts = this.parseNamespace(namespace);
+					ln = parts.length;
+
+			for (i = 0; i < ln; i++) {
+				part = parts[i];
+
+				if (XM.isString(part)) {
+					if (! root || !root[part]) {
+						return null;
+					}
+					root = root[part];
+				}
+				else {
+					root = part;
+				}
+			}
+			return root;
+		},
+
 		define: function(className, param, onCreatedFn) {
 			this.createNamespaces(className);
 
@@ -950,5 +1080,5 @@ XM.ScriptLoader.require(
 	["Car", "Prius", "Car", "vendor/jquery.min.js" ],
 	function() {
 		console.log("-----   READY   ---------");
-		XM.ClassManager.createNamespaces("com.momo.Haha")
+		XM.ClassManager.createNamespace("com.momo.Haha", {haha: "haha"})
 	}, XM);

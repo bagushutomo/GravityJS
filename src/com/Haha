@@ -1,0 +1,7 @@
+(function(){
+	XM.define("com.Haha", {
+
+	}, function() {
+
+	}P
+})();
