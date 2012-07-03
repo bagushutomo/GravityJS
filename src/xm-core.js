@@ -2,10 +2,10 @@
  * @class XM Singleton definition of XMJS framework. The class create an object wrapper as a namespace for all class in XMJS
  * @singleton
  */
-(function(){
+(function() {
 	var _global = this;
 	
-	if (_global.XM == undefined)
+	if (_global.XM === undefined)
 	{
 		_global.XM = {};
 	}
@@ -29,7 +29,7 @@ XM.apply = function(receiver, config, defaults) {
 		XM.apply(receiver, defaults);
 	}
 	
-	if (receiver && config && config.constructor == Object) {
+	if (receiver && config && config.constructor === Object) {
 		var i;
 		for (i in config) {
 			receiver[i] = config[i];
@@ -37,7 +37,7 @@ XM.apply = function(receiver, config, defaults) {
 	}
 	
 	return receiver;
-},
+};
 
 
 XM.apply(XM, {
@@ -231,7 +231,9 @@ XM.Function = {
 			//determine if the arguments is a pair-value in an object.
 			else {
 				for (var i in names) {
-					fn.call(this, i, names[i]);
+					if (names.hasOwnProperty(k)) {
+						fn.call(this, i, names[i]);
+					}
 				}
 			}
 			
@@ -616,7 +618,6 @@ XM.Object = {
 		 * @private
 		 */
 		_load: function(url, onLoad, scope, isSynchronous) {
-			console.log("_load", url);
 			var fileName  = url.split('/').pop(),
 					isLoaded  = false,
 					noCache   = '?nocache=' + Number(new Date());
@@ -820,7 +821,8 @@ XM.Object = {
 	} //end of XM.ScriptLoader
 })();
 
-(function(){
+(function(mergeValidator){
+
 var Base = XM.Base = function(){};
 	Base.prototype = {
 
@@ -828,7 +830,7 @@ var Base = XM.Base = function(){};
 		/**
 		 * Reference to this class
 		 */
-		self: this,
+		self: Base,
 
 		/**
 		 * Constructor prototype for each class
@@ -838,7 +840,7 @@ var Base = XM.Base = function(){};
 		}
 	};
 
-	XM.apply(XM, {
+	XM.apply(XM.Base, {
 
 		/**
 		 * Merge the given properties into this class as 'static' properties
@@ -874,7 +876,6 @@ var Base = XM.Base = function(){};
 					proto[all] = member;
 				}
 			}
-			return this;
 		},
 
 		override: function() {
@@ -888,8 +889,9 @@ var Base = XM.Base = function(){};
 		getName: function() {
 
 		}
-	})
-})();
+	});
+
+})(XM.Function.mergeValidator);
 
 
 
@@ -897,13 +899,13 @@ var Base = XM.Base = function(){};
 
 (function(){
 
-	var Base = XM.Base,
+	var Base = XM.Base, Class = XM.Class,
 		staticProperties = [],
 		staticProperty;
 
 	for (staticProperty in Base) {
-		if (Base.hasOwnProperty(staticProperties)) {
-			staticProperties.push(staticProperties);
+		if (Base.hasOwnProperty(staticProperty)) {
+			staticProperties.push(staticProperty);
 		}
 	}
 
@@ -911,13 +913,15 @@ var Base = XM.Base = function(){};
 	 * @method constructor
 	 */
 	XM.Class = function(classData, onClassCreated) {
-
 		var i, 
 			ln = staticProperties.length,
 			prop;
 
 		//template of the class factory
 		newClass = function() {
+			console.log("newClass", this, arguments);
+			//TODO : class definition must have constructor method. otherwise, this will be recursively called...
+			//TODO : workaround is by change "constructor" name into something different..
 			return this.constructor.apply(this, arguments);
 		}
 
@@ -936,6 +940,8 @@ var Base = XM.Base = function(){};
 		classData.onBeforeClassCreated = function(cls, data) {
 			temp = data.onClassCreated;
 
+			delete data.onBeforeClassCreated;
+			delete data.onClassCreated;
 			cls.implement(data);
 			temp.call(cls, cls);
 		};
@@ -943,6 +949,7 @@ var Base = XM.Base = function(){};
 		//method to instruct when the implementation of above handler is executed
 		process = function(cls, data) {
 			data.onBeforeClassCreated.apply(this, arguments);
+			return;
 		};
 
 		//do the actual process
@@ -952,6 +959,8 @@ var Base = XM.Base = function(){};
 })();
 
 (function(){
+	var Class = XM.Class;
+
 	XM.ClassManager = {
 
 		cachedClass: {},
@@ -959,9 +968,9 @@ var Base = XM.Base = function(){};
 		references: {},
 
 		create: function(className, data, onCreatedFn) {
-			
+
 			var manager = this;
-			
+
 			data._className = className;
 
 			return new Class(data, function(){
@@ -1137,8 +1146,7 @@ var Base = XM.Base = function(){};
 
 XM.apply(XM, {
 	define: function(className, param, onCreatedFn) {
-		console.log("XM.define", className, param);
-		return XM.ClassManager.create(className, {}, function() {
+		return XM.ClassManager.create(className, param, function() {
 			var cls = XM.ClassManager.getReference(className);
 			if (onCreatedFn) {
 				onCreatedFn.call(cls);
@@ -1149,10 +1157,8 @@ XM.apply(XM, {
 
 
 XM.ScriptLoader.require(
-	//"Car",
-	//["vendor/jquery.min.js",
-	//"vendor/jquery-mousewheel.js"],
-	["Car", "com.Haha", "Car", "vendor/jquery.min.js" ],
+	//["Car", "com.tawa", "Car", "vendor/jquery.min.js" ],
+	["Car", "com.Haha", "Car" ],
 	function() {
 		console.log("-----   READY   ---------");
 	}, XM);
