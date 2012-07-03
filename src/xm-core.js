@@ -616,6 +616,7 @@ XM.Object = {
 		 * @private
 		 */
 		_load: function(url, onLoad, scope, isSynchronous) {
+			console.log("_load", url);
 			var fileName  = url.split('/').pop(),
 					isLoaded  = false,
 					noCache   = '?nocache=' + Number(new Date());
@@ -765,6 +766,7 @@ XM.Object = {
 		 * @param {Object}        scope             (optional) The execution scope (i.e: "this" keyword) of the callback function.
 		 */
 		require: function(classes, fn, scope) {
+			console.log("require", classes);
 			//We want to accept multiple classes as dependencies.
 			//So if the specified {classes} is a String, we will convert it into an Array.
 			if (XM.isString(classes)) {
@@ -834,10 +836,58 @@ var Base = XM.Base = function(){};
 		constructor: function() {
 			return this;
 		}
-	}
+	};
 
 	XM.apply(XM, {
-		
+
+		/**
+		 * Merge the given properties into this class as 'static' properties
+		 * @param {Object}        properties             The object contain properties to be merged as static properties in the new class
+		 */
+		mergeStatics: function(properties) {
+
+			for (all in statics) {
+				if (properties.hasOwnProperty(all)) {
+					this[all] = properties[all];
+				}
+			}
+			return this;
+		},
+
+		/**
+		 * Merge the given properties into this class prototype properties. Thus, made the properties inherited when the class is extended.
+		 * @param {Object}        properties             The object contain properties to be merged as prototype properties in the new class
+		 */
+		implement: function(properties) {
+			var proto = this.prototype,
+				member;
+
+			for (all in properties) {
+				if (properties.hasOwnProperty(all)) {
+					member = properties[all];
+
+					if (XM.isFunction(member)) {
+						member._owner = this;
+						member._name = all;
+					}
+
+					proto[all] = member;
+				}
+			}
+			return this;
+		},
+
+		override: function() {
+
+		},
+
+		mixin: function() {
+
+		},
+
+		getName: function() {
+
+		}
 	})
 })();
 
@@ -887,7 +937,7 @@ var Base = XM.Base = function(){};
 			temp = data.onClassCreated;
 
 			cls.implement(data);
-			temp.call(cls, cls)
+			temp.call(cls, cls);
 		};
 
 		//method to instruct when the implementation of above handler is executed
@@ -908,19 +958,18 @@ var Base = XM.Base = function(){};
 
 		references: {},
 
-		create: function(className, data, onCreated) {
+		create: function(className, data, onCreatedFn) {
+			
+			var manager = this;
+			
+			data._className = className;
 
 			return new Class(data, function(){
-
-				process = function(cls, data) {
-
+				manager.setReference(className, this);
+				if (onCreatedFn) {
+					onCreatedFn.call(this, this);
 				}
-				process.call(Class, newClass, classData);
-
-				return newClass
 			})
-
-
 		},
 
 		/**
@@ -969,9 +1018,14 @@ var Base = XM.Base = function(){};
 			}
 		},
 
+		/**
+		 * Parse the given namespace string into operational array data for further traversing.
+		 * @param {String}  name  	A namespace.
+		 * @return {Array}	An array contain the name of each traversed namespace hierarchy.
+		 */
 		parseNamespace: function(namespace) {
 			var parts = [],
-					root = XM.global;
+				root = XM.global;
 
 			parts.push(root);
 			parts = parts.concat(namespace.split('.'));
@@ -981,8 +1035,9 @@ var Base = XM.Base = function(){};
 		/**
 		 * Create a namespace and assign it with a class or object.
 		 * 
-		 * @param {String}  name  	A namespace.
-		 * @param {Object}  obj   	A class or object to be assigned with specific namespace.
+		 * @param 	{String}  	name  	A namespace.
+		 * @param 	{Object}  	obj   	A class or object to be assigned with specific namespace.
+		 * @return 	{Object}	The reference of specific class or object that referenced by given namespace.
 		 */
 		createNamespace: function(name, obj) {
 			var root 	= XM.global,
@@ -1035,19 +1090,32 @@ var Base = XM.Base = function(){};
 			return root;
 		},
 
+		/**
+		 * Assign the given class with specific namespace.
+		 * 
+		 * @param 	{String}  	name  	A namespace.
+		 * @param 	{Object}  	cls  	A reference of class.
+		 * @return 	root 		The class reference of the given namespace.
+		 */
 		setReference: function(name, cls) {
 				this.references[name] = this.createNamespace(name, cls);
 				return this;
 		},
 
+		/**
+		 * Get the actual class reference by given namespace string
+		 * 
+		 * @param 	{String}  	name  	A namespace.
+		 * @return 	root 		The class reference of the given namespace.
+		 */
 		getReference: function(namespace) {
 			if (this.references.hasOwnProperty(namespace)) {
-				return this.references(namespace);
+				return this.references[namespace];
 			}
 
 			var root = XM.global,
-					parts = this.parseNamespace(namespace);
-					ln = parts.length;
+				parts = this.parseNamespace(namespace),
+				ln = parts.length;
 
 			for (i = 0; i < ln; i++) {
 				part = parts[i];
@@ -1063,22 +1131,28 @@ var Base = XM.Base = function(){};
 				}
 			}
 			return root;
-		},
-
-		define: function(className, param, onCreatedFn) {
-			this.createNamespaces(className);
-
 		}
-
 	}
 })();
+
+XM.apply(XM, {
+	define: function(className, param, onCreatedFn) {
+		console.log("XM.define", className, param);
+		return XM.ClassManager.create(className, {}, function() {
+			var cls = XM.ClassManager.getReference(className);
+			if (onCreatedFn) {
+				onCreatedFn.call(cls);
+			}
+		});
+	}
+});
+
 
 XM.ScriptLoader.require(
 	//"Car",
 	//["vendor/jquery.min.js",
 	//"vendor/jquery-mousewheel.js"],
-	["Car", "Prius", "Car", "vendor/jquery.min.js" ],
+	["Car", "com.Haha", "Car", "vendor/jquery.min.js" ],
 	function() {
 		console.log("-----   READY   ---------");
-		XM.ClassManager.createNamespace("com.momo.Haha", {haha: "haha"})
 	}, XM);
