@@ -1043,7 +1043,6 @@ var Base = XM.Base = function(){};
 
 		/**
 		 * Create a namespace and assign it with a class or object.
-		 * 
 		 * @param 	{String}  	name  	A namespace.
 		 * @param 	{Object}  	obj   	A class or object to be assigned with specific namespace.
 		 * @return 	{Object}	The reference of specific class or object that referenced by given namespace.
@@ -1145,7 +1144,12 @@ var Base = XM.Base = function(){};
 })();
 
 XM.apply(XM, {
+
 	define: function(className, param, onCreatedFn) {
+
+		//workaround to prevent the constructor be called infinitely..
+		if (!param.constructor) param[constructor] = {};
+
 		return XM.ClassManager.create(className, param, function() {
 			var cls = XM.ClassManager.getReference(className);
 			if (onCreatedFn) {
