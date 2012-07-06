@@ -83,7 +83,7 @@ XM.apply(XM, {
 	 */
 	isString: function(value) {
 		if (value !== undefined) return value.constructor == String;
-		else return false
+		else return false;
 	},
 	/**
 	 * Validate the specified value by returning true if the specified value is Boolean. Otherwise, will return false.
@@ -123,7 +123,7 @@ XM.apply(XM, {
 	 * @return {Boolean}
 	 */
 	isNull: function(value) {
-		return value == null;
+		return value === null;
 	},
 	/**
 	 * Validate the specified value by returning true if the specified value is empty. Otherwise, will return false. Empty value are:
@@ -139,7 +139,7 @@ XM.apply(XM, {
 	 * @return {Boolean} The value of the validation.
 	 */
 	isEmpty: function(value) {
-		return (value == null) || (XM.isArray(value) && value.length == 0) || (XM.isUndefined(value) || (XM.isString(value) && value == ""));
+		return (value === null) || (XM.isArray(value) && value.length === 0) || (XM.isUndefined(value) || (XM.isString(value) && value === ""));
 	},
 	/**
 	 * Validate the specified value by returning true if the specified value is undefined. Otherwise, will return false.
@@ -152,7 +152,7 @@ XM.apply(XM, {
 		return value === undefined;
 	}
 	
-})
+});
 
 
 
@@ -165,62 +165,62 @@ XM.apply(XM, {
 XM.Function = {
 
 	/**
-	 * Make an alias of {fn} function that to be executed in {scope} 
+	 * Make an alias of {fn} function that to be executed in {scope}
 	 * @method
 	 * @static
 	 * @param {Function}  fn    Function to alias.
 	 * @param {Object}    scope Object that act as the origin which the fn executed.
-	 * @param {Args}      args  Arguments for fn.  
+	 * @param {Args}      args  Arguments for fn.
 	 */
 	bind: function(fn, scope, args) {
 		var _fn = fn;
 		return function() {
 			var param = args || arguments;
-			return _fn.apply(scope || window, param)
-		}
+			return _fn.apply(scope || window, param);
+		};
 	},
 	
 	/**
 	 * Create a function {fn} with defined argument to be passed into caller. This can be used as a way to send a parameterized callback.
 	 * @param {Function}  fn    Function to alias.
 	 * @param {Object}    scope Object that act as the origin which the fn executed.
-	 * @param {Args}      args  Arguments for fn. 
-	 * @return {Function} The function to be used as callback. 
+	 * @param {Args}      args  Arguments for fn.
+	 * @return {Function} The function to be used as callback.
 	 */
 	pass: function (fn, args, scope) {
 		if (XM.isEmpty(args)) args = [];
 
 		return function() {
 			return fn.apply(scope || window, args.concat(arguments));
-		}
+		};
 	},
 	
 	/**
 	 * A wrapper method for checking the validity of a values or object that need to be merged by some specified rules in an evaluation method.
-	 * 
+	 *
 	 * Example:
-	 * 
+	 *
 	 * //in a fictional Evaluator.js class
 	 * setWinner: XM.Function.mergeValidator(function(name, score){
 	 *    if (score > 100) this.winnerScoreList[name] = score;
 	 *    else this.loserScoreList[name] = score;
 	 * });
-	 * 
+	 *
 	 * list.setWinner('andy', 110); //or
 	 * list.setWinner({
 	 *    andy: 110,
 	 *    budi: 90,
 	 *    cakep: 80
 	 * });
-	 * 
+	 *
 	 * console.log(list.andy) //return 110
-	 * 
-	 * @param   {Function}  The evaluation method
+	 *
+	 * @param   {Function}  fn    The evaluation method
 	 * @returns {Function}  The annonymous method with same "interface"; 2 parameters. (as the wrapper are self-invoking method, we need to return our annonymous function(names, values) so that the "interface" of mergeValidator method have the same "interface" with the evaluation method )
 	 */
 	mergeValidator: function(fn) {
 		return function(names, values) {
-			if (names == null) {
+			if (names === null) {
 				return this; //NOTE, this line represent the final return value of annonymous method instead of the mergeValidator wrapper.
 			}
 			
@@ -238,7 +238,19 @@ XM.Function = {
 			}
 			
 			return this; //NOTE, this line represent the final return value of annonymous method instead of the mergeValidator wrapper.
-		}
+		};
+	},
+
+	/**
+	 * Will return a reference tp a method of other class. Thus, allowing to create a "shortcut" method.
+	 *
+	 * @param    {Object}      targetClass    Object which the target method reside.
+	 * @param    {Function}    targetMethod   The target method to be referenced.
+	 */
+	alias: function(targetClass, targetMethod) {
+		return function() { //wrap the returned object as executable function
+			return targetClass[targetMethod].apply(targetClass, arguments);
+		};
 	}
 },
 
@@ -332,8 +344,8 @@ XM.Object = {
 				ss.splice(13, 0, "XXX"); //if IE8 used, length of ss will be 55 instead of 42..
 				lnAfter = ss.length;
 
-				if (lnBefore+1 != lnAfter) return false
-				else return true
+				if (lnBefore+1 != lnAfter) return false;
+				else return true;
 			};
 
 	function fixArrayIndex (array, index) {
@@ -343,7 +355,7 @@ XM.Object = {
 	function replaceNative(array, index, removeCount, insert) {
 		if (insert && insert.length) {
 			if (index < array.length) {
-				array.splice.apply(array, [index, removeCount].concat(insert))
+				array.splice.apply(array, [index, removeCount].concat(insert));
 			}
 			else {
 				array.push.apply(array, insert);
@@ -422,14 +434,14 @@ XM.Object = {
 		return replaceExtend(array, index, removeCount);
 	}
 
-	var erase 	= supportSplice ? eraseNative : eraseExtend,
-			replace = supportSplice ? replaceNative : replaceNative,
-			splice 	= supportSplice ? spliceNative : spliceExtend;
+	var erase   = supportSplice ? eraseNative : eraseExtend,
+	    replace = supportSplice ? replaceNative : replaceNative,
+	    splice  = supportSplice ? spliceNative : spliceExtend;
 
 	XM.Array = {
 
 		/**
-		 * 
+		 *
 		 */
 		erase: erase,
 
@@ -492,7 +504,7 @@ XM.Object = {
 						}
 					}
 				}
-				return result
+				return result;
 			}
 		},
 
@@ -504,7 +516,7 @@ XM.Object = {
 		clone: function(array) {
 				return Array.prototype.slice.call(array);
 		}
-	}
+	};
 })();
 
 
@@ -550,12 +562,11 @@ XM.Object = {
 				
 				return function(value) {
 						return (!value) ? value : String(value).replace(expression, function(match, capture) {
-								return entities[capture];    
+								return entities[capture];
 						});
 				};
 		})()
-		
-	}
+	};
 })();
 
 
@@ -585,7 +596,7 @@ XM.Object = {
 		 * <pre>{
 		 *    require: [],             //array of class dependencies..
 		 *    callback: function() {}, //callback function to execute when all specified classes is loaded..
-		 *    scope: {}                //execution scope of the said dependencies.. 
+		 *    scope: {}                //execution scope of the said dependencies..
 		 * }
 		 * </pre>
 		 * @private
@@ -619,18 +630,19 @@ XM.Object = {
 		 */
 		_load: function(url, onLoad, scope, isSynchronous) {
 			var fileName  = url.split('/').pop(),
-					isLoaded  = false,
-					noCache   = '?nocache=' + Number(new Date());
-					onLoadFn = function() {
-						if (!isLoaded) {
-							isLoaded = true;
-							onLoad.call(scope);
-						}
-					};
+			    script,
+			    isLoaded  = false,
+			    noCache   = '?nocache=' + Number(new Date());
+			    onLoadFn = function() {
+					if (!isLoaded) {
+						isLoaded = true;
+						onLoad.call(scope);
+					}
+				};
 			
 			if (!isSynchronous) { //asynchronous
-				var script = document.createElement('script'),
-						head = document.head || document.getElementsByTagName('head')[0];
+				script = document.createElement('script'),
+				head = document.head || document.getElementsByTagName('head')[0];
 
 				script.type = 'text/javascript';
 				script.src = url + noCache;
@@ -668,7 +680,7 @@ XM.Object = {
 				}
 			}
 			
-			return script
+			return script;
 		}, //end of XM.ScriptLoader#_load()
 		
 		/**
@@ -680,7 +692,7 @@ XM.Object = {
 				var i, j, item, reqs,
 						ln = this._queue.length;
 
-				if (ln == 0) {
+				if (ln === 0) {
 					//this.triggerReady();
 					console.log("UDA READY BANGET");
 					return;
@@ -703,7 +715,7 @@ XM.Object = {
 							else {
 								j++;
 							}
-						} while ( j < reqs.length)
+						} while ( j < reqs.length);
 
 						if (item.requires.length === 0) {
 							XM.Array.erase(this._queue, j, 1);
@@ -778,7 +790,7 @@ XM.Object = {
 			scope = scope || XM.global;
 			
 			//filtering the classes so that only non-empty and non-redundant classes are collected
-			classes = XM.Array.filter(classes, function(item) {return !XM.isEmpty(item)});
+			classes = XM.Array.filter(classes, function(item) {return !XM.isEmpty(item);});
 			classes = XM.Array.filter(classes, function(name) {
 				return !XM.ClassManager.isExist(name);
 			}, this);
@@ -818,7 +830,7 @@ XM.Object = {
 
 			if (this.numWaitingFiles === 0) this._refreshQueue();
 		}
-	} //end of XM.ScriptLoader
+	};
 })();
 
 (function(mergeValidator){
@@ -913,17 +925,15 @@ var Base = XM.Base = function(){};
 	 * @method constructor
 	 */
 	XM.Class = function(classData, onClassCreated) {
-		var i, 
+		var i,
 			ln = staticProperties.length,
 			prop;
 
 		//template of the class factory
 		newClass = function() {
 			console.log("newClass", this, arguments);
-			//TODO : class definition must have constructor method. otherwise, this will be recursively called...
-			//TODO : workaround is by change "constructor" name into something different..
 			return this.constructor.apply(this, arguments);
-		}
+		};
 
 		if (!classData) classData = {};
 
@@ -955,7 +965,7 @@ var Base = XM.Base = function(){};
 		//do the actual process
 		process.call(Class, newClass, classData);
 		return newClass;
-	}
+	};
 })();
 
 (function(){
@@ -978,7 +988,7 @@ var Base = XM.Base = function(){};
 				if (onCreatedFn) {
 					onCreatedFn.call(this, this);
 				}
-			})
+			});
 		},
 
 		/**
@@ -987,12 +997,12 @@ var Base = XM.Base = function(){};
 		 * @return  {Boolean} Existence of the namespace in runtime object hierarchy.
 		 */
 		isExist: function(className) {
-			var parent, child, part;
+			var parent, child, part, i;
 
 			//if the namespaces is in the form of array (i.e: contain multiple namespace), we will recursively call this method for each single namespace..
 			if (XM.isArray(className)) {
-				for (var i = 0; i < className.length; i++) {
-					if (!this.isExist(className[i])) return false
+				for (i = 0; i < className.length; i++) {
+					if (!this.isExist(className[i])) return false;
 				}
 				return true;
 			}
@@ -1013,7 +1023,7 @@ var Base = XM.Base = function(){};
 					parent = XM.singleton;
 					part = className.split('.');
 
-					for (var i = 0; i < part.length; i++ ) {
+					for (i = 0; i < part.length; i++) {
 						if (!parent || !parent[part[i]]) return false;
 						parent = parent[part[i]];
 					}
@@ -1029,8 +1039,8 @@ var Base = XM.Base = function(){};
 
 		/**
 		 * Parse the given namespace string into operational array data for further traversing.
-		 * @param {String}  name  	A namespace.
-		 * @return {Array}	An array contain the name of each traversed namespace hierarchy.
+		 * @param {String}    name    A namespace.
+		 * @return {Array}    An array contain the name of each traversed namespace hierarchy.
 		 */
 		parseNamespace: function(namespace) {
 			var parts = [],
@@ -1043,16 +1053,16 @@ var Base = XM.Base = function(){};
 
 		/**
 		 * Create a namespace and assign it with a class or object.
-		 * @param 	{String}  	name  	A namespace.
-		 * @param 	{Object}  	obj   	A class or object to be assigned with specific namespace.
-		 * @return 	{Object}	The reference of specific class or object that referenced by given namespace.
+		 * @param   {String}    name    A namespace.
+		 * @param   {Object}    obj     A class or object to be assigned with specific namespace.
+		 * @return  {Object}	The reference of specific class or object that referenced by given namespace.
 		 */
 		createNamespace: function(name, obj) {
-			var root 	= XM.global,
-					parts = this.parseNamespace(name),
-					ln = parts.length - 1,
-					last = parts[ln],
-					part, i;
+			var root = XM.global,
+			    parts = this.parseNamespace(name),
+			    ln = parts.length - 1,
+			    last = parts[ln],
+			    part, i;
 
 			for (i = 0; i < ln; i++) {
 				part = parts[i];
@@ -1100,10 +1110,9 @@ var Base = XM.Base = function(){};
 
 		/**
 		 * Assign the given class with specific namespace.
-		 * 
-		 * @param 	{String}  	name  	A namespace.
-		 * @param 	{Object}  	cls  	A reference of class.
-		 * @return 	root 		The class reference of the given namespace.
+		 * @param   {String}    name    A namespace.
+		 * @param   {Object}    cls     A reference of class.
+		 * @return  root        The class reference of the given namespace.
 		 */
 		setReference: function(name, cls) {
 				this.references[name] = this.createNamespace(name, cls);
@@ -1112,9 +1121,8 @@ var Base = XM.Base = function(){};
 
 		/**
 		 * Get the actual class reference by given namespace string
-		 * 
-		 * @param 	{String}  	name  	A namespace.
-		 * @return 	root 		The class reference of the given namespace.
+		 * @param   {String}    name     A namespace.
+		 * @return  root        The class reference of the given namespace.
 		 */
 		getReference: function(namespace) {
 			if (this.references.hasOwnProperty(namespace)) {
@@ -1139,25 +1147,36 @@ var Base = XM.Base = function(){};
 				}
 			}
 			return root;
+		},
+
+		createInstance: function() {
+			
 		}
-	}
+	};
 })();
 
-XM.apply(XM, {
+(function(Class, alias){
+	XM.apply(XM, {
 
-	define: function(className, param, onCreatedFn) {
+		"new": alias(XM.ClassManager, "createInstance"),
 
-		//workaround to prevent the constructor be called infinitely..
-		if (!param.constructor) param[constructor] = {};
+		define: function(className, param, onCreatedFn) {
 
-		return XM.ClassManager.create(className, param, function() {
-			var cls = XM.ClassManager.getReference(className);
-			if (onCreatedFn) {
-				onCreatedFn.call(cls);
-			}
-		});
-	}
-});
+			//workaround to prevent the constructor be called infinitely..
+			//if (!param.constructor) param[constructor] = {};
+
+			XM.ClassManager.create.apply(XM.ClassManager, arguments);
+			/*
+			return XM.ClassManager.create(className, param, function() {
+				var cls = XM.ClassManager.getReference(className);
+				if (onCreatedFn) {
+					onCreatedFn.call(cls);
+				}
+			});
+			*/
+		}
+	});
+})(XM.Class, XM.Function.alias);
 
 
 XM.ScriptLoader.require(
