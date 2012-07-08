@@ -969,13 +969,16 @@ var Base = XM.Base = function(){};
 })();
 
 (function(){
-	var Class = XM.Class;
+	var Class = XM.Class,
+	    slice = Array.prototype.slice;
 
 	XM.ClassManager = {
 
 		cachedClass: {},
 
 		references: {},
+
+		instanceTemplates: [],
 
 		create: function(className, data, onCreatedFn) {
 
@@ -1137,7 +1140,7 @@ var Base = XM.Base = function(){};
 				part = parts[i];
 
 				if (XM.isString(part)) {
-					if (! root || !root[part]) {
+					if (!root || !root[part]) {
 						return null;
 					}
 					root = root[part];
@@ -1150,8 +1153,34 @@ var Base = XM.Base = function(){};
 		},
 
 		createInstance: function() {
-			
+			console.log("createInstance");
+			var i,
+			    className = arguments[0],
+			    param = slice.call(arguments, 1);
+			    arg = [];
+
+			cls = this.getReference(className);
+
+			return this.createTemplate(param.length)(cls, param);
+		},
+
+		createTemplate: function(length) {
+			console.log("createTemplate");
+			if (!this.instanceTemplates[length]) {
+				var i = length,
+					args = [];
+
+				for (i = 0; i < length; i++) {
+					args.push('a['+i+']');
+				}
+
+				this.instanceTemplates[length] = new Function('c', 'a', 'return new c('+args.join(',')+')');
+			}
+			console.log(this.instanceTemplates[length]);
+			return this.instanceTemplates[length];
 		}
+
+
 	};
 })();
 
@@ -1163,17 +1192,14 @@ var Base = XM.Base = function(){};
 		define: function(className, param, onCreatedFn) {
 
 			//workaround to prevent the constructor be called infinitely..
-			//if (!param.constructor) param[constructor] = {};
+			if (!param.constructor) param[constructor] = {};
 
-			XM.ClassManager.create.apply(XM.ClassManager, arguments);
-			/*
 			return XM.ClassManager.create(className, param, function() {
 				var cls = XM.ClassManager.getReference(className);
 				if (onCreatedFn) {
 					onCreatedFn.call(cls);
 				}
 			});
-			*/
 		}
 	});
 })(XM.Class, XM.Function.alias);
@@ -1181,7 +1207,9 @@ var Base = XM.Base = function(){};
 
 XM.ScriptLoader.require(
 	//["Car", "com.tawa", "Car", "vendor/jquery.min.js" ],
-	["Car", "com.Haha", "Car" ],
+	["Car", "com.Haha", "Car",  "com.Blob"],
 	function() {
 		console.log("-----   READY   ---------");
+		var bagus = XM.new("com.Blob", "bagus", 11, 12, 3);
+		var budi = XM.new("com.Blob", "budi", 99, 80, 3);
 	}, XM);
